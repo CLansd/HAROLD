@@ -1,0 +1,62 @@
+Robstride 00:
+- 310g
+- 5Nm rated load 
+- 14Nm peak load
+- 24 to 60V (rated for 48V)
+- Dual Encoder
+- $135
+- 16.1 Nm/kg rated
+- 45.2 Nm/kg peak
+
+Robstride 01:
+- 380g
+- 6Nm rated load
+- 17Nm peak load
+- 170W rated output power
+- 24 to 48V (rated for 36V)
+- Single Encoder
+- $140
+- 15.8 Nm/kg rated
+- 44.7 Nm/kg peak
+
+Robstride 02:
+- 405g
+- 6Nm rated load
+- 17Nm peak load
+- 170W rated output power
+- 24 to 60V (rated for 48V)
+- Dual Encoder
+- $160 ($128 USD from sketchy aliexpress seller)
+- 14.8 Nm/kg rated
+- 42.0 Nm/kg peak
+
+Robstride 03:
+- 880g
+- 20Nm rated load
+- 60Nm peak load
+- 380W rated output power
+- 15 to 60V (rated for 48V)
+- Dual Encoder
+- $250
+- 22.7 Nm/kg rated
+- 68.2 Nm/kg peak
+
+Robstride 05:
+- 191g
+- 1.6Nm rated load
+- 5.5Nm peak load
+- 15 to 60V (rated for 48V)
+- Dual Encoder
+- $120
+- 8.4 Nm/kg rated
+- 28.8 Nm/kg peak
+
+Robstride 06:
+- 621g
+- 11Nm rated load
+- 36Nm peak load
+- 15 to 60V (rated for 48V)
+- Dual encoder
+- $230
+- 17.7 Nm/kg rated
+- 58.0 Nm/kg peak

@@ -1,0 +1,45 @@
+Potential and Past Issues:
+
+ADDING A PHYSICS MATERIAL CAUSED THE SIMULATION TO EXPLODE AFTER ABOUT 1000 ITERATIONS!!!
+I added a physics material to the LeftCalf and RightCalf, set the static and dynamic coefficients of friction to 100, and the density to PETG.
+This caused the simulation to explode after about 1000 iterations, or at least I am 95% sure this was the cause. It no longer happens anymore thank god.
+
+THERE MAY BE ISSUES WITH sudo prime-select on-demand !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+To Do:
+
+- Video:
+    - Start capturing screen video of failures in Isaac Sim as well as shots of code and resulting errors in Isaac Lab.
+    - Create a google doc where I can document the flow of my development process so that I don't forget the challenges I faced.
+
+- Design Harold R2:
+    - Spherical feet.
+    - Switch to robstride actuators.
+
+- Set physics parameters:
+    - Friction coefficient.
+    - Coefficient of restitution to 0.
+
+- Log various parameters to tensorboard.
+
+- Add in missing reward terms.
+
+- Add noise to observation terms:
+    - Orientation.
+    - Angular velocities.
+    - Joint positions.
+    - Joint velocities.
+    - Linear velocities.
+    - Foot positions.
+
+- Add non-zero angular velocity commands into the training regimen.
+    - Modify the heuristic step trajectories by adding and subtracting from L and R velocities according to circles of arc.
+
+- Domain Randomization:
+    - Randomize a number of properties.
+    - Consider adding domain randomization to the actuator gains instead of joint friction coefficient.
+    - Add the option to add a push speed as part of the training curriculum.
+
+- Estimator network:
+    - Collect a dataset of inputs to the estimator network, as well as linear velocities and contact states using the recorder manager.
+    - Train an estimator network in a similar manner to that used in the BRAVER paper.

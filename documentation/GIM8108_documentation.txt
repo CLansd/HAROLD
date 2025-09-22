@@ -1,0 +1,96 @@
+Follow the v3.6 documentation for setting up the GIM8108 odrive: https://docs.odriverobotics.com/v/0.5.6/getting-started.html
+
+    - To set up an odrive via usb, type into terminal:
+        - cd ~/Desktop/odrive/odrive_env
+        - source bin/activate
+        - odrivetool
+        - odrv0.vbus_voltage -> this is to check that the odrive is connected.
+        - odrv0.erase_configuration() -> this resets the odrive back to factory defaults.
+        - odrv0.axis0.requested_state = AXIS_STATE_MOTOR_CALIBRATION -> this should make a beep and do nothing else.
+        - dump_errors(odrv0, True) -> check for errors.
+        - odrv0.axis0.requested_state = AXIS_STATE_ENCODER_OFFSET_CALIBRATION -> this should make the motor turn one way for a bit, then turn back, turn back again, and stop. If it keeps going for wayyyy too long, it's not working! But it might be a minute or so? So potentially wait a long time.
+        - dump_errors(odrv0, True) -> check for errors.
+        - odrv0.axis0.motor.config.pre_calibrated=1
+        - odrv0.axis0.encoder.config.pre_calibrated=1
+        - odrv0.axis0.requested_state = AXIS_STATE_IDLE -> It may fail to save if not in the idle state.
+        - odrv0.axis0.config.can.encoder_rate_ms = 10 -> Ensure that we are sending encoder information automatically every 10ms.
+        - odrv0.save_configuration()
+    - Now we can test it (I'd hard reboot the odrive by pulling the power just to be safe):
+        - cd ~/Desktop/odrive/odrive_env
+        - source bin/activate
+        - odrivetool
+        - odrv0.vbus_voltage -> this is to check that the odrive is connected.
+        - odrv0.axis0.requested_state = AXIS_STATE_CLOSED_LOOP_CONTROL
+        - odrv0.axis0.encoder.pos_estimate -> the odrive does not initialize it's starting position as zero, so we need to start the testing at or very close to the current position or it will over-current!
+        - odrv0.axis0.controller.input_pos = x.x
+        - odrv0.axis0.controller.input_pos = x.y -> I found that adding 0.2 is fine, larger might overcurrent.
+        - Incase of overcurrent, you can check for errors with: dump_errors(odrv0, True)
+        - You can clear errors such as overcurrent with: odrv0.reboot()
+    - We can tune the PID controllers using odrivetool via:
+        - cd ~/Desktop/odrive
+        - source odrive_env/bin/activate
+        - odrivetool
+        - odrv0.vbus_voltage -> this is to check that the odrive is connected.
+        - odrv0.axis0.controller.config.control_mode = CONTROL_MODE_POSITION_CONTROL
+        - odrv0.axis0.controller.config.input_mode = INPUT_MODE_PASSTHROUGH
+        - odrv0.axis0.requested_state = AXIS_STATE_CLOSED_LOOP_CONTROL
+        - Check pos_gain via: odrv0.axis0.controller.config.pos_gain
+        - Check vel_gain via: odrv0.axis0.controller.config.vel_gain
+        - Check vel_integrator_gain via: odrv0.axis0.controller.config.vel_integrator_gain
+        - start_liveplotter(lambda:[odrv0.axis0.encoder.pos_estimate, odrv0.axis0.controller.pos_setpoint])
+        - odrv0.axis0.encoder.pos_estimate -> the odrive does not initialize it's starting position as zero, so we need to start the testing at or very close to the current position or it will over-current!
+        - odrv0.axis0.controller.input_pos = x.x
+        - odrv0.axis0.controller.input_pos = x.y -> I found that adding 0.2 is fine, larger might overcurrent.
+        - Set gains via:
+            - odrv0.axis0.controller.config.pos_gain = 20.0
+            - odrv0.axis0.controller.config.vel_gain = 0.16
+            - odrv0.axis0.controller.config.vel_integrator_gain = 0.0
+        - Incase of overcurrent, you can check for errors with: dump_errors(odrv0, True)
+        - You can clear errors such as overcurrent with: odrv0.reboot()
+
+Running odrive_pos_control.py:
+    - cd ~/Desktop/odrive
+    - source odrive_env/bin/activate
+    - sudo ip link set can0 type can bitrate 500000 -> Set bitrate for can link in terminal.
+    - sudo ip link set can0 up -> Brings up the can link. It won't work without this!
+    - python odrive_pos_control.py -> this runs the program.
+
+- You can download a full configuration from your odrive and upload it to another odrive!
+    - However this does not include encoder offset calibrations.
+- odrivetool liveplotter is a great tool for plotting parameters in real time.
+    - there is an interactive version of the command that lets you keep plotting while issuing new commands to the odrive.
+- While position control is the default type of control on an odrive, there are other options.
+    - Importantly, there is a filtered position control which lets you set a filter bandwidth to smooth out motions between commands.
+        - They recommend setting the filter bandwidth to one half of your setpoint command rate.
+
+- There may only be a select few CANopen node ids that are compatible with our driver -> more info on this in the GIM6010-8 manual.
+- Periodic messages can be sent from the odrive to the Pi over CAN, such as encoder position and encoder rotation rate -> more info on this in the GIM6010-8 manual.
+
+- Aluminum extrusion is cheaper on Amazon than from AliExpress, which makes sense since the shipping from China must be crazy expensive.
+
+up_kp_1060_kd_0_5Hz averages:
+-   1.125 * 10 ^ -3 deviation
+-   1.1 * 10 ^ -3 deviation
+-   1.6 * 10 ^ -3 deviation
+-   1.8 * 10 ^ -3 deviation
+-   1.5 * 10 ^ -3 deviation
+-   1.9 * 10 ^ -3 deviation
+-   1.1 * 10 ^ -3 deviation
+-   1.0 * 10 ^ -3 deviation
+-   1.15 * 10 ^ -3 deviation
+-   1.2 * 10 ^ -3 deviation
+- All were biased roughly 90% or more in the negative direction.
+
+up_kp_106_kd_0_5Hz averages:
+-   7.6 * 10 ^ -3 deviation
+-   10.0 * 10 ^ -3 deviation
+-   22 * 10 ^ -3 deviation
+-   17 * 10 ^ -3 deviation
+-   25 * 10 ^ -3 deviation
+-   18 * 10 ^ -3 deviation
+-   22 * 10 ^ -3 deviation
+-   2 * 10 ^ -3 deviation (intial devition very high though -> if we include this, deviation is more like 8 * 10 ^ -3)
+-   12.5 * 10 ^ -3 deviation (initial deviation very high though -> if we include this, deviation is more like 15.5 * 10 ^ -3)
+-   13.0 * 10 ^ -3 deviation
+- All were biased roughly 90% or more in the negative direction.
+- Most of the time it doesn't do the jittering. It does it less of the time per my gut feeling than for kp_1060 above.
