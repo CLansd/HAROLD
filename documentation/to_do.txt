@@ -41,5 +41,40 @@ To Do:
     - Add the option to add a push speed as part of the training curriculum.
 
 - Estimator network:
-    - Collect a dataset of inputs to the estimator network, as well as linear velocities and contact states using the recorder manager.
-    - Train an estimator network in a similar manner to that used in the BRAVER paper.
+    - Get rid of the estimator network.
+
+People to contact about RL training of bipedal point-foot robots:
+
+Bolt Paper:
+- Constant Roux
+- Elliot Chane-Sane
+- Ludovic De Matte¨ıs
+- Thomas Flayols
+- J´erˆome Manhes
+- Olivier Stasse
+- Philippe Sou`eres
+
+LimX:
+- Wei Zhang, co-founder of LimX dynamics and professor at SUSTech in Shenzhen.
+    - He was a prof in the US so should understand English well.
+
+- Changed solver_velocity_iteration_count in harold.py from 0 to 4 to match the value used in the Tron 1 repo.
+    - Tested as having negligible effect on simulation time.
+- Changed actuator damping in harold_cfg.py from 0.45 to 0.9 to closer reflect the stiffness to damping ratio used in the Tron 1 repo.
+- Split the velocity command generator's resampling period into two variables (from one): vel_resamp_min=0.0, vel_resamp_max-5.0.
+    - Changed from a range of (10.0,10.0) as previous.
+    - Changed to match the values in the LimX repo.
+- Increased the x and y linear velocity and z angular velocity command ranges from (0.0,0.0) to (-0.5,0.5), to be half of LimX repo values.
+- Copied gait_command.py file from LimX repo.
+- Copied UniformGaitCommandCfg from LimX repo into new file commands.py, part of mdp folder.
+- Modified mdp's __init__.py to import commands.py file.
+- Deleted gait_period and gait_height variables from harold_cfg.py
+- Added gait_resampling_period=5.0, gait_freq_min=1.5, gait_freq_max=2.5, gait_phase_offs_min=0.5, gait_phase_offs_max=0.5, gait_durations_min=0.5, gait_durations_max=0.5, gait_swing_height_min=0.1, and gait_swing_height_max=0.2 to harold_cfg.py.
+- Added gait_command to commands in harold_env_cfg.py
+- Deleted reference_foot_positions, actual_feet_positions, phase_tensor, and contact_probabilities from observations in harold_env_cfg.py.
+- Added gait_command to observations in harold_env_cfg.py.
+- Deleted phase_tensor(), stance_phase_pos(), swing_phase_pos(), reference_feet_positions(), and feet_pos_in_root_frame() from observations.py.
+- Copied get_gait_command() from LimX repo and added into observations.py.
+- Deleted calc_phi_i(), feet_speed_rew(), feet_contact_during_swing_rew(), and feet_position_tracking_l2 from rewards.py.
+- Deleted feet_position_tracking_l2 from Rewards in harold_env_cfg.py.
+- Code runs without errors at this point.

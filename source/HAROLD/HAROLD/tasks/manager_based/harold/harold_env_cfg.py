@@ -77,7 +77,7 @@ class CommandsCfg:
     # The commanded base linear and angular velocity setpoints.
     base_velocity   = mdp.UniformVelocityCommandCfg(
         asset_name="robot",
-        resampling_time_range=(harold_cfg.vel_resampling_period,harold_cfg.vel_resampling_period),
+        resampling_time_range=(harold_cfg.vel_resamp_per_min,harold_cfg.vel_resamp_per_max),
         rel_standing_envs=harold_cfg.fraction_still,
         heading_command=False, # Whether to use the heading command or angular velocity command.
         debug_vis=True,
@@ -86,6 +86,17 @@ class CommandsCfg:
             lin_vel_y=(harold_cfg.lin_vel_y_min,harold_cfg.lin_vel_y_max),
             ang_vel_z=(harold_cfg.ang_vel_z_min,harold_cfg.ang_vel_z_max),
         ),
+    )
+
+    gait_command = mdp.UniformGaitCommandCfg(
+        resampling_time_range=(harold_cfg.gait_resampling_period,harold_cfg.gait_resampling_period),
+        debug_vis=False,
+        ranges=mdp.UniformGaitCommandCfg.Ranges(
+            frequencies=(harold_cfg.gait_freq_min,harold_cfg.gait_freq_max),
+            offsets=(harold_cfg.gait_phase_offs_min,harold_cfg.gait_phase_offs_max),
+            durations=(harold_cfg.gait_durations_min, harold_cfg.gait_durations_max),
+            swing_height=(harold_cfg.gait_swing_height_min, harold_cfg.gait_swing_height_max)
+        )
     )
 
 ### --- MDP ACTIONS --- ###
@@ -111,40 +122,19 @@ class ObservationsCfg:
         joint_pos_error             = ObsTerm(func=mdp.joint_pos_error, history_length=harold_cfg.joint_pos_error_history)
         joint_vel                   = ObsTerm(func=mdp.joint_vel_rel, history_length=harold_cfg.joint_vel_history)
         actions                     = ObsTerm(func=mdp.last_action, history_length=harold_cfg.actions_history)
-        reference_foot_positions    = ObsTerm(
-            func=mdp.reference_feet_positions,
-            params={
-                "command_name": "base_velocity",
-                "T": harold_cfg.gait_period,
-                "h_max": harold_cfg.gait_height,
-            }
-        )
-        actual_feet_positions       = ObsTerm(
-            func=mdp.feet_pos_in_root_frame,
-            params={
-                "sensor_cfg": SceneEntityCfg("calf_frame_sensor"),
-            }
-        )
         velocity_commands           = ObsTerm(
             func=mdp.generated_commands,
             params={
                 "command_name": "base_velocity",
             }
         )
-        phase_tensor                = ObsTerm(
-            func=mdp.phase_tensor,
+        gait_command                = ObsTerm(
+            func=mdp.get_gait_command,
             params={
-                "T": harold_cfg.gait_period,
+                "command_name": "gait_command"
             }
         )
         base_lin_vel                = ObsTerm(func=mdp.root_lin_vel_w)
-        contact_probabilities       = ObsTerm(
-            func=mdp.feet_contact,
-            params={
-                "sensor_cfg_L": SceneEntityCfg("contact_forces_L"),
-                "sensor_cfg_R": SceneEntityCfg("contact_forces_R"),
-            }
-        )
 
         # Post initialization.
         def __post_init__(self) -> None:
@@ -189,19 +179,9 @@ class RewardsCfg:
     lin_vel_z_l2 =              RewTerm(func=mdp.lin_vel_z_l2, weight=harold_cfg.z_lin_vel_rew_weight)
     # r_wxy
     ang_vel_xy_l2 =             RewTerm(func=mdp.ang_vel_xy_l2, weight=harold_cfg.xy_ang_vel_rew_weight)
-    # r_foot
-    feet_position_tracking_l2 = RewTerm(
-        func=mdp.feet_position_tracking_l2,
-        weight=harold_cfg.feet_tracking_weight,
-        params={
-            "command_name": "base_velocity",
-            "T": harold_cfg.gait_period,
-            "h_max": harold_cfg.gait_height,
-            "sensor_cfg": SceneEntityCfg("calf_frame_sensor")
-        }
-    )
     # (Not included in the BRAVER paper)
     flat_orientation_rew =      RewTerm(func=mdp.flat_orientation_l2, weight=harold_cfg.flat_body_weight)
+    termination_penalty = RewTerm(func=mdp.is_terminated, weight=harold_cfg.termination_penalty)
 
 ### --- MDP TERMINATIONS --- ###
 @configclass
