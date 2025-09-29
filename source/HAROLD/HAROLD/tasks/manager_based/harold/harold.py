@@ -28,6 +28,77 @@ HAROLD_CFG = ArticulationCfg(
     ),
     soft_joint_pos_limit_factor=harold_cfg.soft_joint_lim_factor,
     actuators={
+        "LeftHip": ImplicitActuatorCfg(
+            joint_names_expr=["LeftHipJoint"],
+            effort_limit_sim=harold_cfg.actuator_max_torque,
+            velocity_limit_sim=harold_cfg.actuator_ang_vel_limit,
+            stiffness={
+                ".*": harold_cfg.actuator_stiffness
+            },
+            damping={
+                ".*": harold_cfg.actuator_damping
+            },
+        ),
+        "RightHip": ImplicitActuatorCfg(
+            joint_names_expr=["RightHipJoint"],
+            effort_limit_sim=harold_cfg.actuator_max_torque,
+            velocity_limit_sim=harold_cfg.actuator_ang_vel_limit,
+            stiffness={
+                ".*": harold_cfg.actuator_stiffness
+            },
+            damping={
+                ".*": harold_cfg.actuator_damping
+            },
+        ),
+        "LeftThigh": ImplicitActuatorCfg(
+            joint_names_expr=["LeftThighJoint"],
+            effort_limit_sim=harold_cfg.actuator_max_torque,
+            velocity_limit_sim=harold_cfg.actuator_ang_vel_limit,
+            stiffness={
+                ".*": harold_cfg.actuator_stiffness
+            },
+            damping={
+                ".*": harold_cfg.actuator_damping
+            },
+        ),
+        "RightThigh": ImplicitActuatorCfg(
+            joint_names_expr=["RightThighJoint"],
+            effort_limit_sim=harold_cfg.actuator_max_torque,
+            velocity_limit_sim=harold_cfg.actuator_ang_vel_limit,
+            stiffness={
+                ".*": harold_cfg.actuator_stiffness
+            },
+            damping={
+                ".*": harold_cfg.actuator_damping
+            },
+        ),
+        "LeftCalf": ImplicitActuatorCfg(
+            joint_names_expr=["LeftCalfJoint"],
+            effort_limit_sim=harold_cfg.actuator_max_torque,
+            velocity_limit_sim=harold_cfg.actuator_ang_vel_limit,
+            stiffness={
+                ".*": harold_cfg.actuator_stiffness
+            },
+            damping={
+                ".*": harold_cfg.actuator_damping
+            },
+        ),
+        "RightCalf": ImplicitActuatorCfg(
+            joint_names_expr=["RightCalfJoint"],
+            effort_limit_sim=harold_cfg.actuator_max_torque,
+            velocity_limit_sim=harold_cfg.actuator_ang_vel_limit,
+            stiffness={
+                ".*": harold_cfg.actuator_stiffness
+            },
+            damping={
+                ".*": harold_cfg.actuator_damping
+            },
+        ),
+    },
+)
+
+"""
+    actuators={
         "legs": ImplicitActuatorCfg(
             joint_names_expr=[".*"],
             effort_limit_sim=harold_cfg.actuator_max_torque,
@@ -40,4 +111,4 @@ HAROLD_CFG = ArticulationCfg(
             },
         ),
     },
-)
+"""

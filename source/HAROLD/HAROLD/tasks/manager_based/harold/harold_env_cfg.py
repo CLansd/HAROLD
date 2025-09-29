@@ -80,7 +80,7 @@ class CommandsCfg:
 class ActionsCfg:
     joint_effort = mdp.JointPositionActionCfg(
         asset_name="robot",
-        joint_names=[".*"],
+        joint_names=["LeftHipJoint", "RightHipJoint", "LeftThighJoint", "RightThighJoint", "LeftCalfJoint", "RightCalfJoint"],
         scale=harold_cfg.joint_action_scale,
     )
 
@@ -91,10 +91,10 @@ class ObservationsCfg:
     # Define the observation terms available to the agent.
     @configclass
     class PolicyCfg(ObsGroup):
-        base_ang_vel                = ObsTerm(func=mdp.base_ang_vel, history_length=harold_cfg.obs_history_length)
-        proj_gravity                = ObsTerm(func=mdp.projected_gravity, history_length=harold_cfg.obs_history_length)
-        joint_pos                   = ObsTerm(func=mdp.joint_pos_rel, history_length=harold_cfg.obs_history_length)
-        joint_vel                   = ObsTerm(func=mdp.joint_vel, history_length=harold_cfg.obs_history_length)
+        base_ang_vel                = ObsTerm(func=mdp.base_ang_vel, history_length=harold_cfg.obs_history_length, noise=GaussianNoise(mean=0.0, std=0.05),clip=(-100.0, 100.0),scale=0.25)
+        proj_gravity                = ObsTerm(func=mdp.projected_gravity, history_length=harold_cfg.obs_history_length, noise=GaussianNoise(mean=0.0, std=0.025),clip=(-100.0, 100.0),scale=1.0)
+        joint_pos                   = ObsTerm(func=mdp.joint_pos_rel, history_length=harold_cfg.obs_history_length, noise=GaussianNoise(mean=0.0, std=0.01),clip=(-100.0, 100.0),scale=1.0)
+        joint_vel                   = ObsTerm(func=mdp.joint_vel, history_length=harold_cfg.obs_history_length, noise=GaussianNoise(mean=0.0, std=0.01),clip=(-100.0, 100.0),scale=0.05)
         last_action                 = ObsTerm(func=mdp.last_action, history_length=harold_cfg.obs_history_length)
         velocity_command            = ObsTerm(
             func=mdp.generated_commands,
@@ -124,13 +124,14 @@ class ObservationsCfg:
     class CriticCfg(ObsGroup):
         # LimX didn't add history to any of these terms, but I'm going to add them and see if it works ok.
         # Policy Observations
-        base_ang_vel                = ObsTerm(func=mdp.base_ang_vel)
-        proj_gravity                = ObsTerm(func=mdp.projected_gravity)
-        joint_pos                   = ObsTerm(func=mdp.joint_pos_rel)
-        joint_vel                   = ObsTerm(func=mdp.joint_vel)
-        last_action                 = ObsTerm(func=mdp.last_action)
+        base_ang_vel                = ObsTerm(func=mdp.base_ang_vel, history_length=harold_cfg.obs_history_length)
+        proj_gravity                = ObsTerm(func=mdp.projected_gravity, history_length=harold_cfg.obs_history_length)
+        joint_pos                   = ObsTerm(func=mdp.joint_pos_rel, history_length=harold_cfg.obs_history_length)
+        joint_vel                   = ObsTerm(func=mdp.joint_vel, history_length=harold_cfg.obs_history_length)
+        last_action                 = ObsTerm(func=mdp.last_action, history_length=harold_cfg.obs_history_length)
         velocity_command            = ObsTerm(
             func=mdp.generated_commands,
+            history_length=harold_cfg.obs_history_length,
             params={
                 "command_name": "base_velocity",
             }
@@ -138,18 +139,20 @@ class ObservationsCfg:
         gait_phase = ObsTerm(func=mdp.get_gait_phase)
         gait_command                = ObsTerm(
             func=mdp.get_gait_command,
+            history_length=harold_cfg.obs_history_length,
             params={
                 "command_name": "gait_command"
             }
         )
 
         # Privileged Observations
-        base_lin_vel                = ObsTerm(func=mdp.base_lin_vel)
-        height                      = ObsTerm(func=mdp.base_pos_z)  # LimX uses a height scanner sensor for this, but for now I think this should be OK since we are on flat terrain.
-        robot_joint_torque          = ObsTerm(func=mdp.robot_joint_torque)
-        robot_joint_acc             = ObsTerm(func=mdp.robot_joint_acc)
+        base_lin_vel                = ObsTerm(func=mdp.base_lin_vel, history_length=harold_cfg.obs_history_length)
+        height                      = ObsTerm(func=mdp.base_pos_z, history_length=harold_cfg.obs_history_length)  # LimX uses a height scanner sensor for this, but for now I think this should be OK since we are on flat terrain.
+        robot_joint_torque          = ObsTerm(func=mdp.robot_joint_torque, history_length=harold_cfg.obs_history_length)
+        robot_joint_acc             = ObsTerm(func=mdp.robot_joint_acc, history_length=harold_cfg.obs_history_length)
         robot_feet_contact_force = ObsTerm(
             func=mdp.robot_feet_contact_force,
+            history_length=harold_cfg.obs_history_length,
             params={
                 "sensor_cfg": SceneEntityCfg("contact_forces", body_names=["LeftFoot", "RightFoot"]),
             },
@@ -158,8 +161,8 @@ class ObservationsCfg:
         robot_inertia = ObsTerm(func=mdp.robot_inertia)
         robot_joint_stiffness = ObsTerm(func=mdp.robot_joint_stiffness)
         robot_joint_damping = ObsTerm(func=mdp.robot_joint_damping)
-        robot_pos = ObsTerm(func=mdp.robot_pos)
-        robot_vel = ObsTerm(func=mdp.robot_vel)
+        robot_pos = ObsTerm(func=mdp.robot_pos, history_length=harold_cfg.obs_history_length)
+        robot_vel = ObsTerm(func=mdp.robot_vel, history_length=harold_cfg.obs_history_length)
         robot_material_properties = ObsTerm(func=mdp.robot_material_properties)
         robot_base_pose = ObsTerm(func=mdp.robot_base_pose)
 
@@ -174,11 +177,39 @@ class ObservationsCfg:
 ### --- MDP EVENTS --- ###
 @configclass
 class EventCfg:
-    # ON STARTUP:
-    # - add base mass
-    # - add link mass
-    # - randomize rigid body mass inertia
-    robot_physics_material = EventTerm( # Set realistic ranges for static and dynamic friction as well as coefficient of restitution. Right now they are just 1.0 or 0.0.
+    # ON STARTUP
+    add_base_mass = EventTerm(
+        func=mdp.randomize_rigid_body_mass,
+        mode="startup",
+        params={
+            "asset_cfg": SceneEntityCfg("robot", body_names="Body"),
+            "mass_distribution_params": (-0.15, 0.45),
+            "operation": "add",
+        },
+        is_global_time=False,
+        min_step_count_between_reset=0,
+    )
+    add_link_mass = EventTerm(
+        func=mdp.randomize_rigid_body_mass,
+        mode="startup",
+        params={
+            "asset_cfg": SceneEntityCfg("robot", body_names=["LeftThigh", "RightThigh", "LeftHip", "RightHip", "LeftFoot", "RightFoot"]),
+            "mass_distribution_params": (0.8, 1.2),
+            "operation": "scale",
+        },
+        is_global_time=False,
+        min_step_count_between_reset=0,
+    )
+    radomize_rigid_body_mass_inertia = EventTerm(
+        func=mdp.randomize_rigid_body_mass_inertia,
+        mode="startup",
+        params={
+            "asset_cfg": SceneEntityCfg("robot"),
+            "mass_inertia_distribution_params": (0.8, 1.2),
+            "operation": "scale",
+        },
+    )
+    robot_physics_material = EventTerm(
         func=mdp.randomize_rigid_body_material,
         mode="startup",
         params={
@@ -191,21 +222,46 @@ class EventCfg:
         is_global_time=False,
         min_step_count_between_reset=0,
     )
-    # - randomize actuator gains
-    # - randomize rigid body coms
+    robot_joint_stiffness_and_damping = EventTerm(
+        func=mdp.randomize_actuator_gains,
+        mode="startup",
+        params={
+            "asset_cfg": SceneEntityCfg("robot", joint_names=".*"),
+            "stiffness_distribution_params": (12.5, 18),
+            "damping_distribution_params": (0.75, 1.08),
+            "operation": "abs",
+            "distribution": "uniform",
+        },
+        is_global_time=False,
+        min_step_count_between_reset=0,
+    )
+    robot_center_of_mass = EventTerm(
+        func=mdp.randomize_rigid_body_coms,
+        mode="startup",
+        params={
+            "asset_cfg": SceneEntityCfg("robot"),
+            "com_distribution_params": ((-0.0375, 0.0375), (-0.025, 0.03), (-0.025, 0.025)),
+            "operation": "add",
+            "distribution": "uniform",
+        },
+    )
 
     # ON RESET:
-    reset_robot_position = EventTerm( # Replace this with reset_robot_base.
-        func=mdp.reset_scene_to_default,
-        mode="reset",
-        params={},
-    )
     
     """
+    reset_robot_position = EventTerm( # Replace this with reset_robot_base.
+        func=mdp.reset_scene_to_default,
+        mode="startup",
+        params={},
+    )
+    """
+    
+    
     reset_robot_base = EventTerm(
         func=mdp.reset_root_state_uniform,
         mode="reset",
         params={
+            "asset_cfg": SceneEntityCfg("robot"),
             "pose_range": {"x": (harold_cfg.x_pose_range_min, harold_cfg.x_pose_range_max), "y": (harold_cfg.y_pose_range_min, harold_cfg.y_pose_range_max), "yaw": (harold_cfg.yaw_pose_range_min, harold_cfg.yaw_pose_range_max)},
             "velocity_range": {
                 "x": (harold_cfg.reset_vel_x_min, harold_cfg.reset_vel_x_max),
@@ -219,12 +275,42 @@ class EventCfg:
         is_global_time=False,
         min_step_count_between_reset=0
     )
-    """
-
-    # - reset joints by scale
+    
+    
+    # THIS IS ABSOLUTELY CRUCIAL TO GETTING THE ROBOT TO NOT YEET ITSELF INTO THE AIR WHEN reset_root_state_uniform is enabled!!!
+    reset_robot_joints = EventTerm(
+        func=mdp.reset_joints_by_scale,
+        mode="reset",
+        params={
+            "asset_cfg": SceneEntityCfg("robot", joint_names=".*"),
+            "position_range": (1.0, 1.0), # I think we will need to adjust this.
+            "velocity_range": (0.0, 0.0),
+        },
+        is_global_time=False,
+        min_step_count_between_reset=0,
+    )
+    
 
     # ON INTERVAL:
-    # - push robot
+    
+    push_robot = EventTerm(
+        func=mdp.apply_external_force_torque_stochastic,
+        mode="interval",
+        interval_range_s=(0.0, 0.0),
+        params={
+            "asset_cfg": SceneEntityCfg("robot", body_names="Body"),
+            "force_range": {
+                "x": (-50.0, 50.0),
+                "y": (-50.0, 50.0),
+                "z": (-0.0, 0.0),
+            },  # force = mass * dv / dt
+            "torque_range": {"x": (-5.0, 5.0), "y": (-5.0, 5.0), "z": (-0.0, 0.0)},
+            "probability": 0.002,  # Expect step = 1 / probability
+        },
+        is_global_time=False,
+        min_step_count_between_reset=0,
+    )
+    
 
 ### --- MDP REWARDS --- ###
 @configclass

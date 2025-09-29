@@ -106,7 +106,13 @@ def robot_joint_torque(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEn
     """joint torque of the robot"""
     asset: Articulation = env.scene[asset_cfg.name]
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-    return asset.data.applied_torque.to(device)
+    return_val = asset.data.applied_torque.to(device)
+    torque_values = return_val[0].tolist()
+    formatted_torques = [f"{torque:8.2f}" for torque in torque_values]
+    output_string = "[" + ", ".join(formatted_torques) + "]"
+    # Order is: ["LeftHipJoint", "RightHipJoint", "LeftThighJoint", "RightThighJoint", "LeftCalfJoint", "RightCalfJoint"]
+    # print(output_string)
+    return return_val
 
 def robot_joint_acc(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
     """joint acc of the robot"""

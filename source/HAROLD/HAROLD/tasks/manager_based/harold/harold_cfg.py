@@ -34,12 +34,12 @@ joint_action_scale      =   0.25                # Scale factor applied to the ag
 obs_history_length      =   10                  # History length of observations.
 
 # EVENTS
-static_friction_min     =   1.0                 # Minimum coefficient of static friction for random distribution.
-static_friction_max     =   1.0                 # Maximum coefficient of static friction for random distribution.
-dynamic_friction_min    =   1.0                 # Minimum coefficient of dynamic friction for random distribution.
-dynamic_friction_max    =   1.0                 # Maximum coefficient of dynamic friction for random distribution.
+static_friction_min     =   0.4                 # Minimum coefficient of static friction for random distribution.
+static_friction_max     =   1.2                 # Maximum coefficient of static friction for random distribution.
+dynamic_friction_min    =   0.7                 # Minimum coefficient of dynamic friction for random distribution.
+dynamic_friction_max    =   0.9                 # Maximum coefficient of dynamic friction for random distribution.
 restitution_min         =   0.0                 # Minimum coefficient of restitution for random distribution.
-restitution_max         =   0.0                 # Maximum coefficient of restitution for random distribution.
+restitution_max         =   1.0                 # Maximum coefficient of restitution for random distribution.
 x_pose_range_min        =  -0.5                 # Minimum sampled x coordinate on reset.
 x_pose_range_max        =   0.5                 # Maximum sampled x coordinate on reset.
 y_pose_range_min        =  -0.5                 # Minimum sampled y coordinate on reset.
