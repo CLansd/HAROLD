@@ -12,6 +12,7 @@ from isaaclab.managers import ObservationTermCfg as ObsTerm
 from isaaclab.managers import EventTermCfg as EventTerm
 from isaaclab.managers import RewardTermCfg as RewTerm
 from isaaclab.managers import TerminationTermCfg as DoneTerm
+from isaaclab.utils.noise import AdditiveGaussianNoiseCfg as GaussianNoise
 from .harold import HAROLD_CFG
 from . import harold_cfg
 from . import mdp
@@ -368,6 +369,7 @@ class RewardsCfg:
             "asset_cfg": SceneEntityCfg("robot", body_names=["LeftFoot", "RightFoot"]),
         },
     )
+    termination_penalty = RewTerm(func=mdp.is_terminated, weight=-200.0)
 
 
 ### --- MDP TERMINATIONS --- ###
