@@ -90,7 +90,7 @@ episode_length          =   20.0                # Episode length (seconds).
 camera_pos              =   (8.0, 8.0, 4.8)     # Position of the camera/viewport in the scene (meters).
 
 # ARTICULATION INITIALIZATION
-root_init_pos           =   (0.0, 0.0, 0.40)    # Initial position of the articulation root in world frame (meters).
+root_init_pos           =   (0.0, 0.0, 1.0)    # Initial position of the articulation root in world frame (meters).
 joints_init_pos         =   {                   # Initial positions of the joints (radians).
     "LeftHipJoint": 0.0,
     "RightHipJoint": 0.0,
