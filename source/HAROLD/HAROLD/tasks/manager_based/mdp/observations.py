@@ -111,7 +111,7 @@ def robot_joint_torque(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEn
     formatted_torques = [f"{torque:8.2f}" for torque in torque_values]
     output_string = "[" + ", ".join(formatted_torques) + "]"
     # Order is: ["LeftHipJoint", "RightHipJoint", "LeftThighJoint", "RightThighJoint", "LeftCalfJoint", "RightCalfJoint"]
-    print(output_string)
+    # print(output_string)
     return return_val
 
 def robot_joint_acc(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:

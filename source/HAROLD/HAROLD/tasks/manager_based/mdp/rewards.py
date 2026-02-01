@@ -253,3 +253,82 @@ def base_com_height(
         adjusted_target_height = target_height
     # Compute the L2 squared penalty
     return torch.abs(asset.data.root_pos_w[:, 2] - adjusted_target_height)
+
+
+class ChrisGaitReward(ManagerTermBase):
+    def __init__(self, cfg: RewardTermCfg, env: ManagerBasedRLEnv):
+        """Initialize the term."""
+        super().__init__(cfg, env)
+        # Get the sensor name from the config
+        sensor_cfg = cfg.params["sensor_cfg"]
+        # Get the actual sensor object from the environment and store it
+        self.contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
+        # Store the simulation timestep
+        self.dt = env.step_dt
+
+    def __call__(
+        self,
+        env: ManagerBasedRLEnv,
+        command_name: str,
+        sensor_cfg,
+        contact_force_threshold: float
+    ) -> torch.Tensor:
+        """Compute the reward based on foot contact state."""
+        # Use the 'command_name' argument directly
+        gait_params = env.command_manager.get_command(command_name)
+
+        # 1. Determine the DESIRED contact state
+        desired_contact_states = self._compute_desired_contact_states(gait_params)
+
+        # 2. Determine the ACTUAL contact state
+        # Use 'self.contact_sensor' (from init) and 'sensor_cfg' argument
+        foot_forces = torch.norm(self.contact_sensor.data.net_forces_w[:, sensor_cfg.body_ids], dim=-1)
+        # Use the 'contact_force_threshold' argument directly
+        actual_contact_states = (foot_forces > contact_force_threshold).float()
+
+        # 3. Calculate the penalty for any mismatch
+        contact_mismatch_penalty = torch.abs(desired_contact_states - actual_contact_states)
+
+        # 4. The final reward is the sum of penalties
+        reward = torch.sum(contact_mismatch_penalty, dim=1)
+
+        return reward
+
+    def _compute_desired_contact_states(self, gait_params: torch.Tensor) -> torch.Tensor:
+        """Calculate the desired binary contact state (stance=1, swing=0) for each foot.
+
+        Args:
+            gait_params: A tensor containing gait parameters [frequency, offsets, durations].
+
+        Returns:
+            A tensor where 1.0 indicates a desired stance phase and 0.0 indicates a swing phase.
+        """
+        # Extract gait parameters
+        frequencies = gait_params[:, 0]
+        offsets = gait_params[:, 1]
+        # The duration parameter defines the fraction of the cycle that should be in the stance phase
+        durations = torch.cat(
+            [
+                gait_params[:, 2].view(self.num_envs, 1),
+                gait_params[:, 2].view(self.num_envs, 1),
+            ],
+            dim=1,
+        )
+
+        # Calculate the current position in the gait cycle (from 0.0 to 1.0)
+        gait_indices = torch.remainder(self._env.episode_length_buf * self.dt * frequencies, 1.0)
+
+        # Calculate the phase for each foot by applying the specified offsets
+        foot_indices = torch.remainder(
+            torch.cat(
+                [gait_indices.view(self.num_envs, 1), (gait_indices + offsets + 1).view(self.num_envs, 1)],
+                dim=1,
+            ),
+            1.0,
+        )
+
+        # A foot is in the desired stance phase if its current phase (foot_index)
+        # is less than the stance duration.
+        desired_contact_states = (foot_indices < durations).float()
+
+        return desired_contact_states

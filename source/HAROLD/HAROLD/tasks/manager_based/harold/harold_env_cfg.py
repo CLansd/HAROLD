@@ -368,6 +368,16 @@ class RewardsCfg:
     # foot_landing_vel not included until we switch to a point foot CAD model.
     pen_joint_vel_l2                = RewTerm(func=mdp.joint_vel_l2, weight=harold_cfg.pen_joint_vel_l2_weight)
     pen_joint_powers                = RewTerm(func=mdp.joint_powers_l1, weight=harold_cfg.pen_joint_powers_weight)
+    test_chris_gait_reward          = RewTerm(
+        func=mdp.ChrisGaitReward,
+        weight=-0.5,
+        params={
+            "command_name": "gait_command",
+            "sensor_cfg": SceneEntityCfg("contact_forces", body_names=["LeftFoot", "RightFoot"]),
+            "contact_force_threshold": 1.0
+        }
+    )
+    """
     test_gait_reward                = RewTerm(
         func=mdp.GaitReward,
         weight=1.0,
@@ -382,6 +392,7 @@ class RewardsCfg:
             "asset_cfg": SceneEntityCfg("robot", body_names=["LeftFoot", "RightFoot"]),
         },
     )
+    """
     termination_penalty = RewTerm(func=mdp.is_terminated, weight=-200.0)
 
 
