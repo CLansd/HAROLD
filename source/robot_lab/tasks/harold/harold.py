@@ -98,19 +98,3 @@ HAROLD_CFG = ArticulationCfg(
         ),
     },
 )
-
-"""
-    actuators={
-        "legs": ImplicitActuatorCfg(
-            joint_names_expr=[".*"],
-            effort_limit_sim=robot_cfg.actuator_max_torque,
-            velocity_limit_sim=robot_cfg.actuator_ang_vel_limit,
-            stiffness={
-                ".*": robot_cfg.actuator_stiffness
-            },
-            damping={
-                ".*": robot_cfg.actuator_damping
-            },
-        ),
-    },
-"""
