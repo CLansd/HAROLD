@@ -15,7 +15,7 @@ from isaaclab.managers import TerminationTermCfg as DoneTerm
 from isaaclab.utils.noise import AdditiveGaussianNoiseCfg as GaussianNoise
 from .tron import HAROLD_CFG
 from . import tron_cfg
-from . import mdp
+from .. import mdp
 
 ### --- SCENE DEFINITION --- ###
 @configclass
