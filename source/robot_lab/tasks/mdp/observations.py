@@ -1,10 +1,32 @@
 import torch
+import math
 from isaaclab.envs import ManagerBasedEnv, ManagerBasedRLEnv
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.sensors.contact_sensor import ContactSensor
 from isaaclab.assets import Articulation
 import isaaclab.utils.math as math_utils
 
+def phase_sin_cos(env: ManagerBasedRLEnv, T: float) -> torch.Tensor:
+    """
+    Observes the sin and cos of the current gait phase.
+    This provides a continuous clock signal to the agent.
+    
+    Args:
+        T: The period of the walking cycle in seconds.
+    """
+    # Calculate continuous phase [0, 1]
+    current_time = env.episode_length_buf * env.step_dt
+    freq = 1.0 / T
+    phase = (current_time * freq) % 1.0
+    
+    # Convert to Sin/Cos to avoid discontinuity at 0/1
+    # Shape: (num_envs, 2)
+    phase_signal = torch.stack([
+        torch.sin(2 * math.pi * phase),
+        torch.cos(2 * math.pi * phase)
+    ], dim=-1)
+    
+    return phase_signal
 
 # I've validated that this function seems to be working correctly.
 def feet_contact(

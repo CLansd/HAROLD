@@ -50,6 +50,7 @@ class ObservationsCfg:
     class PolicyCfg(ObsGroup):
         joint_pos                   = ObsTerm(func=mdp.joint_pos_rel, history_length=10)
         joint_vel                   = ObsTerm(func=mdp.joint_vel, history_length=10)
+        phase_signal = ObsTerm(func=mdp.phase_sin_cos, params={"T": 2.0})
 
         # Post initialization.
         def __post_init__(self) -> None:
@@ -60,6 +61,7 @@ class ObservationsCfg:
     class CriticCfg(ObsGroup):
         joint_pos                   = ObsTerm(func=mdp.joint_pos_rel, history_length=10)
         joint_vel                   = ObsTerm(func=mdp.joint_vel, history_length=10)
+        phase_signal = ObsTerm(func=mdp.phase_sin_cos, params={"T": 2.0})
 
         robot_joint_torque          = ObsTerm(func=mdp.robot_joint_torque, history_length=10)
         robot_joint_acc             = ObsTerm(func=mdp.robot_joint_acc, history_length=10)
@@ -97,6 +99,16 @@ class EventCfg:
 @configclass
 class RewardsCfg:
     pen_joint_torque = RewTerm(func=mdp.joint_torques_l2, weight=-0)
+    trajectory_tracking = RewTerm(
+        func=mdp.track_triangular_trajectory_world,
+        weight=-4.0,
+        params={
+            # "command_name": "base_velocity",  <-- REMOVED
+            "asset_cfg": SceneEntityCfg("robot", body_names=["Calf"]),
+            "step_height": 0.1,
+            "step_length": 0.2, # <-- ADDED (Total stride length in meters)
+        },
+    )
 
 
 ### --- MDP TERMINATIONS --- ###

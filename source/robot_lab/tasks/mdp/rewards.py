@@ -6,7 +6,91 @@ from isaaclab.envs import ManagerBasedRLEnv
 from isaaclab.managers import SceneEntityCfg, ManagerTermBase, RewardTermCfg
 from isaaclab.sensors import ContactSensor, RayCaster
 from isaaclab.assets import Articulation, RigidObject
+import isaaclab.utils.math as math_utils
 
+import torch
+from isaaclab.envs import ManagerBasedRLEnv
+from isaaclab.managers import SceneEntityCfg
+from isaaclab.assets import Articulation
+import isaaclab.utils.math as math_utils
+
+import torch
+from isaaclab.envs import ManagerBasedRLEnv
+from isaaclab.managers import SceneEntityCfg
+from isaaclab.assets import Articulation
+import isaaclab.utils.math as math_utils
+
+def track_triangular_trajectory_world(
+    env: ManagerBasedRLEnv,
+    asset_cfg: SceneEntityCfg,
+    step_height: float = 0.1,
+    step_length: float = 0.4, # FIXED length (e.g. 0.4m total stride)
+    # command_name arg is REMOVED
+) -> torch.Tensor:
+    """
+    Reward for tracking a triangular foot trajectory with a FIXED stride length.
+    """
+    # 1. Retrieve Assets (No Command Manager needed)
+    asset: Articulation = env.scene[asset_cfg.name]
+    
+    # 2. Dynamics Parameters
+    T = 2.0 
+    
+    # FIXED Stride Length (Half-stride)
+    # This will be constant regardless of robot speed or joystick input
+    Ly = step_length / 2.0 
+    
+    # 3. Get Current Time and Phase
+    current_time = env.episode_length_buf * env.step_dt
+    freq = 1.0 / T
+    phase = (current_time * freq) % 1.0
+    
+    # 4. Get Actual Ball-Foot Positions (World Frame)
+    body_pos_w = asset.data.body_pos_w[:, asset_cfg.body_ids, :]
+    body_quat_w = asset.data.body_quat_w[:, asset_cfg.body_ids, :]
+    
+    # Offset: (0, 0, -0.25)
+    offset_local = torch.tensor([0.0, 0.0, -0.25], device=env.device)
+    
+    num_bodies = body_pos_w.shape[1]
+    offset_batch = offset_local.repeat(env.num_envs, num_bodies, 1)
+    
+    offset_world = math_utils.quat_apply(body_quat_w.view(-1, 4), offset_batch.view(-1, 3))
+    offset_world = offset_world.view(env.num_envs, num_bodies, 3)
+    
+    feet_pos_w = body_pos_w + offset_world
+    
+    # 5. Calculate Target Trajectory
+    center_pos = torch.tensor([0.0, 0.05, -0.3], device=env.device)
+    
+    phases = phase.unsqueeze(1).repeat(1, num_bodies) 
+    target_y_rel = torch.zeros_like(phases)
+    target_z_rel = torch.zeros_like(phases)
+    
+    is_stance = phases < 0.5
+    is_swing = ~is_stance
+    
+    # Stance
+    t_s = phases[is_stance] / 0.5
+    # Use the FIXED Ly
+    target_y_rel[is_stance] = Ly * (1 - 2 * t_s)
+    target_z_rel[is_stance] = 0.0
+
+    # Swing
+    t_w = (phases[is_swing] - 0.5) / 0.5
+    target_y_rel[is_swing] = -Ly + (2 * Ly * t_w)
+    
+    z_swing = torch.where(t_w < 0.5, 
+                          step_height * (t_w * 2), 
+                          step_height * (2 - t_w * 2))
+    target_z_rel[is_swing] = z_swing
+
+    # 6. Construct Final Target
+    target_pos_w = center_pos.repeat(env.num_envs, num_bodies, 1)
+    target_pos_w[:, :, 1] += target_y_rel
+    target_pos_w[:, :, 2] += target_z_rel
+
+    return torch.norm(target_pos_w - feet_pos_w, dim=-1).sum(dim=1)
 
 def air_time_reward(
         env: ManagerBasedRLEnv,
