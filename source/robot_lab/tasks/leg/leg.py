@@ -19,15 +19,15 @@ LEG_CFG = ArticulationCfg(
             max_depenetration_velocity=1.0,
         ),
         articulation_props=sim_utils.ArticulationRootPropertiesCfg(
-            enabled_self_collisions=False, solver_position_iteration_count=4, solver_velocity_iteration_count=4
+            enabled_self_collisions=False, solver_position_iteration_count=4, solver_velocity_iteration_count=4, fix_root_link=True
         ),
     ),
     init_state=ArticulationCfg.InitialStateCfg(
         pos=(0.0, 0.0, 1.0),
         joint_pos={                 # Initial positions of the joints (radians).
             "Hip": 0.0,
-            "Thigh_01": 0.916,
-            "Knee": 0.785,
+            "Thigh_01": 0.0,
+            "Knee": 0.0,
             },
         joint_vel={
             "Hip": 0.0,

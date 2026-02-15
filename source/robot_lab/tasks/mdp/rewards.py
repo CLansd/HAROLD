@@ -6,6 +6,46 @@ from isaaclab.sensors import ContactSensor, RayCaster
 from isaaclab.assets import Articulation, RigidObject
 import isaaclab.utils.math as math_utils
 
+def keep_foot_in_pos(
+        env: ManagerBasedRLEnv,
+        asset_cfg: SceneEntityCfg,
+        foot_offset,
+        foot_centre_pos
+) -> torch.Tensor:
+    
+    # Get the actual foot position.
+
+    asset: Articulation = env.scene[asset_cfg.name]
+
+    body_pos_w = asset.data.body_pos_w[:, asset_cfg.body_ids[0], :]
+    body_quat_w = asset.data.body_quat_w[:, asset_cfg.body_ids[0], :]
+
+    offset_local = torch.tensor(foot_offset, device=env.device)
+    offset_batch = offset_local.repeat(env.num_envs, 1)
+    offset_world =  math_utils.quat_apply(body_quat_w, offset_batch)
+
+    feet_pos_w = body_pos_w + offset_world
+
+    feet_pos_local = feet_pos_w - env.scene.env_origins
+
+    # Get the target foot position.
+
+    center_pos = torch.tensor(foot_centre_pos, device=env.device)
+    target_pos_w = center_pos.repeat(env.num_envs, 1)
+
+    error = torch.norm(target_pos_w - feet_pos_local, dim=-1)
+
+    #print(f"DEBUG [Env 0] Phase: {phase[0].item():.2f} | "
+    #        f"Error: {error[0].item():.3f} | "
+    #        f"Tgt X: {target_pos_w[0, 0].item():.3f} | "
+    #        f"Real X: {feet_pos_local[0, 0].item():.3f} | "
+    #        f"Tgt Y: {target_pos_w[0, 1].item():.3f} | "
+    #        f"Real Y: {feet_pos_local[0, 1].item():.3f} | "
+    #        f"Tgt Z: {target_pos_w[0, 2].item():.3f} | "
+    #        f"Real Z: {feet_pos_local[0, 2].item():.3f}")
+        
+    return error
+
 def track_foot_trajectory(
         env: ManagerBasedRLEnv,
         asset_cfg: SceneEntityCfg,
@@ -28,6 +68,8 @@ def track_foot_trajectory(
     offset_world =  math_utils.quat_apply(body_quat_w, offset_batch)
 
     feet_pos_w = body_pos_w + offset_world
+
+    feet_pos_local = feet_pos_w - env.scene.env_origins
 
     # Get the target foot position.
 
@@ -63,16 +105,16 @@ def track_foot_trajectory(
     target_pos_w[:, 1] += target_y_rel
     target_pos_w[:, 2] += target_z_rel
 
-    error = torch.norm(target_pos_w - feet_pos_w, dim=-1)
+    error = torch.norm(target_pos_w - feet_pos_local, dim=-1)
 
-    print(f"DEBUG [Env 0] Phase: {phase[0].item():.2f} | "
-            f"Error: {error[0].item():.3f} | "
-            f"Tgt X: {target_pos_w[0, 0].item():.3f} | "
-            f"Real X: {feet_pos_w[0, 0].item():.3f} | "
-            f"Tgt Y: {target_pos_w[0, 1].item():.3f} | "
-            f"Real Y: {feet_pos_w[0, 1].item():.3f} | "
-            f"Tgt Z: {target_pos_w[0, 2].item():.3f} | "
-            f"Real Z: {feet_pos_w[0, 2].item():.3f}")
+    #print(f"DEBUG [Env 0] Phase: {phase[0].item():.2f} | "
+    #        f"Error: {error[0].item():.3f} | "
+    #        f"Tgt X: {target_pos_w[0, 0].item():.3f} | "
+    #        f"Real X: {feet_pos_local[0, 0].item():.3f} | "
+    #        f"Tgt Y: {target_pos_w[0, 1].item():.3f} | "
+    #        f"Real Y: {feet_pos_local[0, 1].item():.3f} | "
+    #        f"Tgt Z: {target_pos_w[0, 2].item():.3f} | "
+    #        f"Real Z: {feet_pos_local[0, 2].item():.3f}")
         
     return error
 

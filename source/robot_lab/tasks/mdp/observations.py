@@ -18,7 +18,7 @@ def phase_sin_cos(env: ManagerBasedRLEnv, T: float) -> torch.Tensor:
 
     return phase_signal
 
-def actual_foot_pos_world(
+def actual_foot_pos_local(
         env: ManagerBasedRLEnv,
         asset_cfg: SceneEntityCfg,
         foot_offset
@@ -34,11 +34,13 @@ def actual_foot_pos_world(
 
     feet_pos_w = body_pos_w + offset_world
 
-    #print(    f"Real X: {feet_pos_w[0, 0].item():.3f} | " f"Real Y: {feet_pos_w[0, 1].item():.3f} | " #f"Real Z: {feet_pos_w[0, 2].item():.3f}")
+    feet_pos_local = feet_pos_w - env.scene.env_origins
 
-    return feet_pos_w
+    #print(    f"Real X: {feet_pos_local[0, 0].item():.3f} | " f"Real Y: {feet_pos_local[0, 1].item():.3f} | " #f"Real Z: {feet_pos_local[0, 2].item():.3f}")
 
-def target_foot_pos_world(
+    return feet_pos_local
+
+def target_foot_pos_local(
         env: ManagerBasedRLEnv,
         step_height,
         step_length,
